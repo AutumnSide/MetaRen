@@ -305,4 +305,7 @@ async def doc(bot, update):
     # Clean up temporary files after uploading
     if ph_path:
         os.remove(ph_path)  # Clean up the thumbnail
-
+    if file_path:
+        os.remove(file_path)
+    if metadata_path:
+        os.remove(metadata_path)
