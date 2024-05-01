@@ -53,6 +53,11 @@ async def query_metadata(bot: Client, query: CallbackQuery):
                 await query.message.reply_text("⚠️ Error!!\n\n**Request timed out.**\nRestart by using /metadata", reply_to_message_id=query.message.id)
                 return
 
+
+
+            SEND_VIDEO_TITLE ="Enter The Title of the Video"
+            SEND_AUDIO_TITLE = "Enter the Title of the Audio"
+            SEND_SUBTITLE_TITLE = "Enter thr Title of the Subtitle"
             # Store the metadata information in a dictionary
             metadata_info = {
                 "video_title": video_title.text,
