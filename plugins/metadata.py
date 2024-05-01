@@ -85,7 +85,7 @@ async def query_metadata(bot: Client, query: CallbackQuery):
 
             # Update metadata of the video file
             await update_video_metadata(query.from_user.id, metadata_info)
-
+            print(metadata_info)
             ms = await query.message.reply_text("**Please Wait...**", reply_to_message_id=metadata.id)
             await db.set_metadata_code(query.from_user.id, metadata_code=metadata.text)
             await ms.edit("**Your Metadata Code Successfully Added ✅**")
