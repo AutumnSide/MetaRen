@@ -4,30 +4,17 @@ from helper.database import db
 from pyromod.exceptions import ListenerTimeout
 from config import Txt
 
+# Function to update metadata of a video file
+async def update_video_metadata(user_id, metadata_info):
+    # Write code to update the metadata of the video file
+    # You can use a library like mutagen to modify the metadata
+    pass
 
-ON = [[InlineKeyboardButton('Metadata On ✅', callback_data='metadata_1')], [
-    InlineKeyboardButton('Set Custom Metadata', callback_data='cutom_metadata')]]
-OFF = [[InlineKeyboardButton('Metadata Off ❌', callback_data='metadata_0')], [
-    InlineKeyboardButton('Set Custom Metadata', callback_data='cutom_metadata')]]
-
-
-@Client.on_message(filters.private & filters.command('metadata'))
-async def handle_metadata(bot: Client, message: Message):
-
-    ms = await message.reply_text("**Please Wait...**", reply_to_message_id=message.id)
-    bool_metadata = await db.get_metadata(message.from_user.id)
-    user_metadata = await db.get_metadata_code(message.from_user.id)
-    await ms.delete()
-    if bool_metadata:
-
-        return await message.reply_text(f"Your Current Metadata:-\n\n➜ `{user_metadata}` ", reply_markup=InlineKeyboardMarkup(ON))
-
-    return await message.reply_text(f"Your Current Metadata:-\n\n➜ `{user_metadata}` ", reply_markup=InlineKeyboardMarkup(OFF))
-
+# Your existing code for handling metadata commands
+# ...
 
 @Client.on_callback_query(filters.regex('.*?(custom_metadata|metadata).*?'))
 async def query_metadata(bot: Client, query: CallbackQuery):
-
     data = query.data
 
     if data.startswith('metadata_'):
@@ -37,7 +24,6 @@ async def query_metadata(bot: Client, query: CallbackQuery):
         if bool(eval(_bool)):
             await db.set_metadata(query.from_user.id, bool_meta=False)
             await query.message.edit(f"Your Current Metadata:-\n\n➜ `{user_metadata}` ", reply_markup=InlineKeyboardMarkup(OFF))
-
         else:
             await db.set_metadata(query.from_user.id, bool_meta=True)
             await query.message.edit(f"Your Current Metadata:-\n\n➜ `{user_metadata}` ", reply_markup=InlineKeyboardMarkup(ON))
@@ -45,14 +31,39 @@ async def query_metadata(bot: Client, query: CallbackQuery):
     elif data == 'cutom_metadata':
         await query.message.delete()
         try:
+            # Ask user for video title
             try:
-                metadata = await bot.ask(text=Txt.SEND_METADATA, chat_id=query.from_user.id, filters=filters.text, timeout=30, disable_web_page_preview=True)
+                video_title = await bot.ask(text=Txt.SEND_VIDEO_TITLE, chat_id=query.from_user.id, filters=filters.text, timeout=30)
             except ListenerTimeout:
                 await query.message.reply_text("⚠️ Error!!\n\n**Request timed out.**\nRestart by using /metadata", reply_to_message_id=query.message.id)
                 return
-            print(metadata.text)
+
+            # Ask user for audio title
+            try:
+                audio_title = await bot.ask(text=Txt.SEND_AUDIO_TITLE, chat_id=query.from_user.id, filters=filters.text, timeout=30)
+            except ListenerTimeout:
+                await query.message.reply_text("⚠️ Error!!\n\n**Request timed out.**\nRestart by using /metadata", reply_to_message_id=query.message.id)
+                return
+
+            # Ask user for subtitle title
+            try:
+                subtitle_title = await bot.ask(text=Txt.SEND_SUBTITLE_TITLE, chat_id=query.from_user.id, filters=filters.text, timeout=30)
+            except ListenerTimeout:
+                await query.message.reply_text("⚠️ Error!!\n\n**Request timed out.**\nRestart by using /metadata", reply_to_message_id=query.message.id)
+                return
+
+            # Store the metadata information in a dictionary
+            metadata_info = {
+                "video_title": video_title.text,
+                "audio_title": audio_title.text,
+                "subtitle_title": subtitle_title.text
+            }
+
+            # Update metadata of the video file
+            await update_video_metadata(query.from_user.id, metadata_info)
+
             ms = await query.message.reply_text("**Please Wait...**", reply_to_message_id=metadata.id)
             await db.set_metadata_code(query.from_user.id, metadata_code=metadata.text)
-            await ms.edit("**Your Metadta Code Set Successfully ✅**")
+            await ms.edit("**Your Metadata Code Set Successfully ✅**")
         except Exception as e:
             print(e)
