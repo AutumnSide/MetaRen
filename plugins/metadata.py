@@ -59,12 +59,7 @@ async def query_metadata(bot: Client, query: CallbackQuery):
             # Define functions to ask user for custom metadata inputs with proper error handling
             def get_user_input(bot, user_id, question, timeout=30):
                 try:
-                    response = await bot.ask(
-                        chat_id=user_id,
-                        text=question,
-                        filters=filters.text,
-                        timeout=timeout
-                    )
+                    response = await bot.ask(chat_id=user_id,text=question,filters=filters.text,timeout=timeout)
                     return response.text
                 except ListenerTimeout:
                     return None
