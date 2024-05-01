@@ -5,89 +5,112 @@ from helper.database import db
 from pyromod.exceptions import ListenerTimeout
 from config import Txt
 
-# Function to update metadata of a video file
-async def update_video_metadata(user_id, metadata_info):
-    # Write code to update the metadata of the video file
-    # You can use a library like mutagen to modify the metadata
-    pass
-
-# Your existing code for handling metadata commands
-# ...
+# Metadata Toggle buttons
 ON = [[InlineKeyboardButton('Enabled ✅', callback_data='metadata_1')], [
     InlineKeyboardButton('Set Metadata', callback_data='custom_metadata')]]
 OFF = [[InlineKeyboardButton('Disabled ❌', callback_data='metadata_0')], [
     InlineKeyboardButton('Set Metadata', callback_data='custom_metadata')]]
 
-
+# /metadata command handler
 @Client.on_message(filters.private & filters.command('metadata'))
 async def handle_metadata(bot: Client, message: Message):
-
     ms = await message.reply_text("**Please Wait...**", reply_to_message_id=message.id)
+
+    # Retrieve current metadata status and metadata info for the user
     bool_metadata = await db.get_metadata(message.from_user.id)
     user_metadata = await db.get_metadata_code(message.from_user.id)
+
     await ms.delete()
+
+    # Set the metadata status to display in the response
+    metadata_text = "No metadata set." if user_metadata is None else f"Your Current Metadata:\n\n➜ `{user_metadata}`"
+    
     if bool_metadata:
+        # If metadata is enabled, show the metadata info with the ON button
+        await message.reply_text(metadata_text, reply_markup=InlineKeyboardMarkup(ON))
+    else:
+        # If metadata is disabled, show the metadata info with the OFF button
+        await message.reply_text(metadata_text, reply_markup=InlineKeyboardMarkup(OFF))
 
-        return await message.reply_text(f"Your Current Metadata:-\n\n➜ `{metadata_info}` ", reply_markup=InlineKeyboardMarkup(ON))
-
-    return await message.reply_text(f"Your Current Metadata:-\n\n➜ `{metadata_info}` ", reply_markup=InlineKeyboardMarkup(OFF))
-
+# /metadata query handler
 @Client.on_callback_query(filters.regex('.*?(custom_metadata|metadata).*?'))
 async def query_metadata(bot: Client, query: CallbackQuery):
     data = query.data
 
+    # Handling metadata toggle
     if data.startswith('metadata_'):
         _bool = data.split('_')[1]
+        _bool = bool(int(_bool))
+
+        # Set metadata status based on the callback query
+        await db.set_metadata(query.from_user.id, _bool)
+        
+        # Retrieve updated metadata information
         user_metadata = await db.get_metadata_code(query.from_user.id)
+        metadata_text = "No metadata set." if user_metadata is None else f"Your Current Metadata:\n\n➜ `{user_metadata}`"
 
-        if bool(eval(_bool)):
-            await db.set_metadata(query.from_user.id, bool_meta=False)
-            await query.message.edit(f"Your Current Metadata:-\n\n➜ `{user_metadata}` ", reply_markup=InlineKeyboardMarkup(OFF))
-        else:
-            await db.set_metadata(query.from_user.id, bool_meta=True)
-            await query.message.edit(f"Your Current Metadata:-\n\n➜ `{user_metadata}` ", reply_markup=InlineKeyboardMarkup(ON))
+        # Update the message with new metadata status
+        await query.message.edit(
+            metadata_text,
+            reply_markup=InlineKeyboardMarkup(ON if _bool else OFF)
+        )
 
+    # Handling custom metadata
     elif data == 'custom_metadata':
         await query.message.delete()
+
         try:
-            # Ask user for video title
+            # Asking user for video title with error handling
             try:
-                video_title = await bot.ask(text=Txt.SEND_VIDEO_TITLE, chat_id=query.from_user.id, filters=filters.text, timeout=30)
+                video_title_response = await bot.ask(
+                    query.from_user.id,
+                    text=Txt.SEND_VIDEO_TITLE,
+                    filters=filters.text,
+                    timeout=30
+                )
             except ListenerTimeout:
-                await query.message.reply_text("⚠️ Error!!\n\n**Request timed out.**\nRestart by using /metadata", reply_to_message_id=query.message.id)
+                await query.message.reply_text("⚠️ Error!!\n\n**Request timed out.**\nRestart by using /metadata")
                 return
 
-            # Ask user for audio title
+            # Asking for audio title
             try:
-                audio_title = await bot.ask(text=Txt.SEND_AUDIO_TITLE, chat_id=query.from_user.id, filters=filters.text, timeout=30)
+                audio_title_response = await bot.ask(
+                    query.from_user.id,
+                    text=Txt.SEND_AUDIO_TITLE,
+                    filters=filters.text,
+                    timeout=30
+                )
             except ListenerTimeout:
-                await query.message.reply_text("⚠️ Error!!\n\n**Request timed out.**\nRestart by using /metadata", reply_to_message_id=query.message.id)
+                await query.message.reply_text("⚠️ Error!!\n\n**Request timed out.**\nRestart by using /metadata")
                 return
 
-            # Ask user for subtitle title
+            # Asking for subtitle title
             try:
-                subtitle_title = await bot.ask(text=Txt.SEND_SUBTITLE_TITLE, chat_id=query.from_user.id, filters=filters.text, timeout=30)
+                subtitle_title_response = await bot.ask(
+                    query.from_user.id,
+                    text=Txt.SEND_SUBTITLE_TITLE,
+                    filters=filters.text,
+                    timeout=30
+                )
             except ListenerTimeout:
-                await query.message.reply_text("⚠️ Error!!\n\n**Request timed out.**\nRestart by using /metadata", reply_to_message_id=query.message.id)
+                await query.message.reply_text("⚠️ Error!!\n\n**Request timed out.**\nRestart by using /metadata")
                 return
 
-
-
-            SEND_VIDEO_TITLE ="Enter The Title of the Video"
-            SEND_AUDIO_TITLE = "Enter the Title of the Audio"
-            SEND_SUBTITLE_TITLE = "Enter thr Title of the Subtitle"
-            # Store the metadata information in a dictionary
+            # Store metadata information as a dictionary
             metadata_info = {
-                "video_title": video_title.text,
-                "audio_title": audio_title.text,
-                "subtitle_title": subtitle_title.text
+                "video_title": video_title_response.text,
+                "audio_title": audio_title_response.text,
+                "subtitle_title": subtitle_title_response.text
             }
 
-            # Update metadata of the video file
-            await update_video_metadata(query.from_user.id, metadata_info)
-            print(metadata_info)
-            ms = await query.message.reply_text("**Please Wait...**", reply_to_message_id=metadata.id)
-            await db.set_metadata_code(query.from_user.id, metadata_code=metadata.text)
-            await ms.edit("**Your Metadata Code Successfully Added ✅**")
+            # Store metadata in the database
+            await db.set_metadata_code(query.from_user.id, metadata_info)
+
+            # Notify the user that the metadata has been set successfully
+            await query.message.reply_text(
+                "Metadata updated successfully ✅",
+                reply_markup=InlineKeyboardMarkup(ON)
+            )
         except Exception as e:
-            print(e)
+            print("Error in setting metadata:", e)
+            await query.message.reply_text("⚠️ Error occurred while updating metadata. Try again.")
