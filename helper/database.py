@@ -19,7 +19,12 @@ class Database:
             prefix=None,
             suffix=None,
             metadata=False,
-            metadata_code="""-map 0 -c:s copy -c:a copy -c:v copy -metadata title="Powered By:- @your_channel" -metadata author="@your_custom" -metadata:s:s title="Subtitled By :- @yours" -metadata:s:a title="By :- @yours" -metadata:s:v title="By:- @yours """
+            video_title=None,
+            audio_title=None,
+            subtitle_title=None,
+            metadata_info = (video_title, audio_title, subtitle_title),
+            metadata_code=metadata_info,
+            #metada="""-map 0 -c:s copy -c:a copy -c:v copy -metadata title="Powered By:- @your_channel" -metadata author="@your_custom" -metadata:s:s title="Subtitled By :- @yours" -metadata:s:a title="By :- @yours" -metadata:s:v title="By:- @yours """
         )
 
     async def add_user(self, b, m):
@@ -71,6 +76,23 @@ class Database:
     async def get_suffix(self, id):
         user = await self.col.find_one({'_id': int(id)})
         return user.get('suffix', None)
+        
+    
+    # Function to set custom metadata for a user
+    async def set_metadata_info(self, user_id, metadata_info):
+        await self.col.update_one(
+            {'_id': int(user_id)},
+            {'$set': {'metadata_info': metadata_info}}
+        )
+    
+    # Function to get custom metadata for a user
+    async def get_metadata_info(self, user_id):
+        user = await self.col.find_one({'_id': int(user_id)})
+        if user:
+            return user.get('metadata_info', None)
+        else:
+            return None
+
 
     async def set_metadata(self, id, bool_meta):
         await self.col.update_one({'_id': int(id)}, {'$set': {'metadata': bool_meta}})
@@ -87,4 +109,8 @@ class Database:
         return user.get('metadata_code', None)
 
 
+
 db = Database(Config.DB_URL, Config.DB_NAME)
+
+
+
