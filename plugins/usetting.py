@@ -1,4 +1,4 @@
-@Client.on_message(filters.private & filters.command("start"))
+@Client.on_message(filters.private & filters.command("settings"))
 async def settings(client, message):
 
   if message.from_user.id in Config.BANNED_USERS:
